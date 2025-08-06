@@ -935,7 +935,7 @@
             `;
             
             // Append the new message to the bottom of the list
-            messagesList.appendChild(messageEl);
+            messagesList.appendChild(messageEl); // Changed from prepend to append
             messagesList.scrollTop = messagesList.scrollHeight; // Auto-scroll to bottom after new message
         }
 
