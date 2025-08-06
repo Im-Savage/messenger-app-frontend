@@ -897,7 +897,9 @@
                 const requests = await response.json();
 
                 friendRequestsList.innerHTML = '<h3>Friend Requests</h3>'; // Clear before re-rendering
-                if (requests.length === 0) {
+                
+                // Check if requests is an array before iterating
+                if (!Array.isArray(requests) || requests.length === 0) {
                     friendRequestsList.innerHTML += `
                         <div style="text-align: center; color: #666; margin-top: 20px;">
                             <p>No pending requests.</p>
