@@ -224,25 +224,34 @@
             background-color: #388E3C; /* Darker green on hover */
         }
 
-        .friends-list {
+        .friends-list, .friend-requests-list { /* Combined styling */
             flex-grow: 1;
             overflow-y: auto;
+            margin-top: 10px;
+            padding: 0 20px; /* Add padding for list items */
         }
 
-        .friends-list::-webkit-scrollbar {
+        .friends-list::-webkit-scrollbar, .friend-requests-list::-webkit-scrollbar {
             width: 8px;
         }
         
-        .friends-list::-webkit-scrollbar-thumb {
+        .friends-list::-webkit-scrollbar-thumb, .friend-requests-list::-webkit-scrollbar-thumb {
             background-color: rgba(255, 255, 255, 0.3); /* Brighter scrollbar */
             border-radius: 4px;
         }
 
-        .friend-item {
+        .friends-list h3, .friend-requests-list h3 {
+            font-size: 1.2rem;
+            color: #E0E0E0;
+            margin-bottom: 10px;
+            padding-left: 5px; /* Align with list items */
+        }
+
+        .friend-item, .request-item { /* Combined styling */
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 15px 20px;
+            padding: 15px 5px; /* Adjusted padding */
             cursor: pointer;
             transition: background-color 0.2s ease;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1); /* Stronger border */
@@ -253,17 +262,17 @@
             border-left: 5px solid #3B82F6; /* Added accent border */
         }
 
-        .friend-item:hover {
+        .friend-item:hover, .request-item:hover {
             background-color: rgba(255, 255, 255, 0.15); /* Slightly more prominent hover */
         }
 
-        .friend-item .friend-info {
+        .friend-item .friend-info, .request-item .request-info {
             display: flex;
             align-items: center;
             gap: 15px;
         }
 
-        .friend-item button {
+        .friend-item button, .request-item button {
             background-color: #4CAF50;
             color: #fff;
             border: none;
@@ -277,6 +286,26 @@
         .friend-item button:hover {
             background-color: #388E3C;
         }
+
+        .request-actions button {
+            margin-left: 8px;
+            font-size: 0.9rem;
+            padding: 6px 10px;
+        }
+
+        .request-actions .accept-button {
+            background-color: #28a745; /* Green for accept */
+        }
+        .request-actions .accept-button:hover {
+            background-color: #218838;
+        }
+        .request-actions .decline-button {
+            background-color: #dc3545; /* Red for decline */
+        }
+        .request-actions .decline-button:hover {
+            background-color: #c82333;
+        }
+
 
         .chat-main {
             flex-grow: 1;
@@ -497,7 +526,7 @@
                 z-index: 11; /* Bring to front when active */
             }
 
-            .friends-list {
+            .friends-list, .friend-requests-list {
                 flex-grow: 1;
                 max-height: none; /* Allow full height */
             }
@@ -508,7 +537,7 @@
             .sidebar-search {
                 padding: 10px 15px; /* Adjust padding */
             }
-            .friend-item {
+            .friend-item, .request-item {
                 padding: 12px 15px; /* Adjust padding */
             }
             .chat-header {
@@ -622,15 +651,23 @@
                 </div>
 
                 <div class="sidebar-search">
-                    <input type="text" id="friendUsername" placeholder="Add friend by username">
-                    <button onclick="addFriend()">Add</button>
+                    <input type="text" id="friendUsername" placeholder="Send request to username">
+                    <button onclick="sendFriendRequest()">Send Request</button>
                 </div>
                 
+                <div class="friend-requests-list" id="friendRequestsList">
+                    <h3>Friend Requests</h3>
+                    <!-- Friend requests will be dynamically added here -->
+                    <div style="text-align: center; color: #94a3b8; margin-top: 20px;">
+                        <p>No pending requests.</p>
+                    </div>
+                </div>
+
                 <div class="friends-list" id="friendsList">
+                    <h3>Friends</h3>
                     <!-- Friends will be dynamically added here -->
-                    <div style="text-align: center; color: #94a3b8; margin-top: 50px;">
-                        <h3>No friends yet</h3>
-                        <p>Add friends using their username to start chatting!</p>
+                    <div style="text-align: center; color: #94a3b8; margin-top: 20px;">
+                        <p>No friends yet.</p>
                     </div>
                 </div>
             </div>
@@ -758,6 +795,7 @@
 
                     showNotification('Logged in successfully!');
                     loadFriends();
+                    loadFriendRequests(); // Load pending requests
                 } else {
                     showNotification(user.error || 'Login failed');
                 }
@@ -767,48 +805,47 @@
             }
         }
 
-        // Add friend function
-        async function addFriend() {
-            const friendUsername = document.getElementById('friendUsername').value.trim();
+        // MODIFIED: Send a friend request
+        async function sendFriendRequest() {
+            const receiverUsername = document.getElementById('friendUsername').value.trim();
             
-            if (!friendUsername) {
-                showNotification('Please enter a username');
+            if (!receiverUsername) {
+                showNotification('Please enter a username to send a request.');
                 return;
             }
 
-            if (friendUsername === currentUser.username) {
-                showNotification('You cannot add yourself as a friend');
+            if (receiverUsername === currentUser.username) {
+                showNotification('You cannot send a friend request to yourself');
                 return;
             }
 
             try {
-                const response = await fetch(`${BACKEND_URL}/add-friend`, {
+                const response = await fetch(`${BACKEND_URL}/send-friend-request`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ userId: currentUser.id, friendUsername: friendUsername }),
+                    body: JSON.stringify({ senderId: currentUser.id, receiverUsername: receiverUsername }),
                 });
 
                 const data = await response.json();
 
                 if (response.ok) {
-                    showNotification('Friend added successfully!');
+                    showNotification('Friend request sent successfully!');
                     document.getElementById('friendUsername').value = '';
-                    loadFriends();
                 } else {
-                    showNotification(data.error || 'Failed to add friend');
+                    showNotification(data.error || 'Failed to send friend request');
                 }
             } catch (error) {
                 showNotification('An error occurred. Check console for details.');
-                console.error('Error adding friend:', error);
+                console.error('Error sending friend request:', error);
             }
         }
         
         // Load friends from the database
         async function loadFriends() {
             const friendsList = document.getElementById('friendsList');
-            friendsList.innerHTML = '<div style="text-align: center; color: #94a3b8; margin-top: 50px;">Loading friends...</div>';
+            friendsList.innerHTML = '<div style="text-align: center; color: #94a3b8; margin-top: 20px;">Loading friends...</div>';
 
             try {
                 const response = await fetch(`${BACKEND_URL}/friends/${currentUser.id}`);
@@ -817,9 +854,8 @@
                 friendsList.innerHTML = '';
                 if (friends.length === 0) {
                     friendsList.innerHTML = `
-                        <div style="text-align: center; color: #666; margin-top: 50px;">
-                            <h3>No friends yet</h3>
-                            <p>Add friends using their username to start chatting!</p>
+                        <div style="text-align: center; color: #666; margin-top: 20px;">
+                            <p>No friends yet.</p>
                         </div>
                     `;
                     return;
@@ -845,9 +881,98 @@
                 });
             } catch (error) {
                 console.error('Error loading friends:', error);
-                friendsList.innerHTML = '<div style="text-align: center; color: red; margin-top: 50px;">Failed to load friends.</div>';
+                friendsList.innerHTML = '<div style="text-align: center; color: red; margin-top: 20px;">Failed to load friends.</div>';
             }
         }
+
+        // NEW: Load pending friend requests
+        async function loadFriendRequests() {
+            const friendRequestsList = document.getElementById('friendRequestsList');
+            friendRequestsList.innerHTML = '<h3>Friend Requests</h3><div style="text-align: center; color: #94a3b8; margin-top: 20px;">Loading requests...</div>';
+
+            if (!currentUser) return;
+
+            try {
+                const response = await fetch(`${BACKEND_URL}/friend-requests/${currentUser.id}`);
+                const requests = await response.json();
+
+                friendRequestsList.innerHTML = '<h3>Friend Requests</h3>'; // Clear before re-rendering
+                if (requests.length === 0) {
+                    friendRequestsList.innerHTML += `
+                        <div style="text-align: center; color: #666; margin-top: 20px;">
+                            <p>No pending requests.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                requests.forEach(request => {
+                    const requestEl = document.createElement('div');
+                    requestEl.className = 'request-item';
+                    requestEl.innerHTML = `
+                        <div class="request-info">
+                            <div class="user-avatar">${request.sender_name.charAt(0).toUpperCase()}</div>
+                            <div>
+                                <div style="font-weight: bold;">${request.sender_name}</div>
+                                <div class="request-status">@${request.sender_username}</div>
+                            </div>
+                        </div>
+                        <div class="request-actions">
+                            <button class="accept-button" onclick="acceptFriendRequest(${request.request_id})">Accept</button>
+                            <button class="decline-button" onclick="declineFriendRequest(${request.request_id})">Decline</button>
+                        </div>
+                    `;
+                    friendRequestsList.appendChild(requestEl);
+                });
+            } catch (error) {
+                console.error('Error loading friend requests:', error);
+                friendRequestsList.innerHTML = '<h3>Friend Requests</h3><div style="text-align: center; color: red; margin-top: 20px;">Failed to load requests.</div>';
+            }
+        }
+
+        // NEW: Accept a friend request
+        async function acceptFriendRequest(requestId) {
+            try {
+                const response = await fetch(`${BACKEND_URL}/accept-friend-request`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ requestId: requestId, userId: currentUser.id }),
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    showNotification('Friend request accepted!');
+                    loadFriendRequests(); // Refresh requests
+                    loadFriends(); // Refresh friends list
+                } else {
+                    showNotification(data.error || 'Failed to accept request');
+                }
+            } catch (error) {
+                console.error('Error accepting friend request:', error);
+                showNotification('An error occurred while accepting request.');
+            }
+        }
+
+        // NEW: Decline a friend request
+        async function declineFriendRequest(requestId) {
+            try {
+                const response = await fetch(`${BACKEND_URL}/decline-friend-request`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ requestId: requestId, userId: currentUser.id }),
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    showNotification('Friend request declined.');
+                    loadFriendRequests(); // Refresh requests
+                } else {
+                    showNotification(data.error || 'Failed to decline request');
+                }
+            } catch (error) {
+                console.error('Error declining friend request:', error);
+                showNotification('An error occurred while declining request.');
+            }
+        }
+
 
         // Function to check if it's a mobile view
         function isMobileView() {
@@ -1075,6 +1200,7 @@
                 document.getElementById('currentUserAvatar').textContent = currentUser.name.charAt(0).toUpperCase();
                 
                 loadFriends();
+                loadFriendRequests(); // Load pending requests on login
 
                 // On mobile, initially show only the sidebar (friends list)
                 if (isMobileView()) {
