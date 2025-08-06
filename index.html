@@ -454,22 +454,101 @@
                 height: 100vh;
                 width: 100%;
                 border-radius: 0;
+                box-shadow: none; /* No shadow on full screen mobile */
             }
             
             .sidebar {
                 width: 100%;
-                height: 40vh; /* Adjusted height for mobile */
+                height: 100vh; /* Takes full height when active */
                 border-right: none;
                 border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+                position: absolute; /* Position absolute to overlay */
+                top: 0;
+                left: 0;
+                z-index: 10; /* Bring to front */
+                transition: transform 0.3s ease-in-out;
+                transform: translateX(0); /* Visible by default */
             }
             
+            .sidebar.mobile-hidden {
+                transform: translateX(-100%); /* Hide off-screen */
+            }
+
             .chat-main {
-                height: 60vh; /* Adjusted height for mobile */
+                width: 100%;
+                height: 100vh; /* Takes full height when active */
+                position: absolute; /* Position absolute to overlay */
+                top: 0;
+                left: 0;
+                z-index: 9; /* Behind sidebar initially */
+                transition: transform 0.3s ease-in-out;
+                transform: translateX(100%); /* Hidden by default */
+            }
+
+            .chat-main.mobile-active {
+                transform: translateX(0); /* Show on screen */
+                z-index: 11; /* Bring to front when active */
             }
 
             .friends-list {
+                flex-grow: 1;
                 max-height: none; /* Allow full height */
             }
+
+            .sidebar-header {
+                padding: 15px; /* Slightly less padding */
+            }
+            .sidebar-search {
+                padding: 10px 15px; /* Adjust padding */
+            }
+            .friend-item {
+                padding: 12px 15px; /* Adjust padding */
+            }
+            .chat-header {
+                padding: 15px; /* Slightly less padding */
+            }
+            .chat-input {
+                padding: 15px; /* Slightly less padding */
+            }
+            .chat-input input {
+                padding: 12px; /* Adjust input padding */
+            }
+            .chat-input button {
+                padding: 12px 18px; /* Adjust button padding */
+            }
+            .message-content {
+                padding: 10px 15px; /* Adjust message padding */
+            }
+            .auth-card {
+                padding: 30px; /* Adjust auth card padding */
+            }
+            .auth-card h2 {
+                font-size: 1.8rem; /* Adjust heading size */
+            }
+            .auth-card input {
+                padding: 12px; /* Adjust input padding */
+                font-size: 1rem;
+            }
+            .auth-card button {
+                padding: 12px; /* Adjust button padding */
+                font-size: 1.1rem;
+            }
+
+            /* Add back button styling for mobile */
+            .mobile-back-button {
+                display: block; /* Show on mobile */
+                background: none;
+                border: none;
+                color: #fff;
+                font-size: 1.5rem;
+                cursor: pointer;
+                padding-right: 15px;
+            }
+        }
+
+        /* Default for desktop - hide mobile back button */
+        .mobile-back-button {
+            display: none;
         }
     </style>
     <!-- Use your public Railway URL for the Socket.io connection -->
@@ -527,6 +606,7 @@
             <!-- Main chat area -->
             <div class="chat-main">
                 <div class="chat-header">
+                    <button class="mobile-back-button" onclick="backToFriends()">&#8592;</button> <!-- Left arrow -->
                     <div class="friend-info">
                         <div class="user-avatar" id="chatFriendAvatar">F</div>
                         <span class="chat-user-name" id="chatFriendName">Select a friend to chat</span>
@@ -733,6 +813,25 @@
             }
         }
 
+        // Function to check if it's a mobile view
+        function isMobileView() {
+            return window.innerWidth <= 768;
+        }
+
+        // Toggles between friends list and chat main on mobile
+        function toggleMobileView(showChat) {
+            const sidebar = document.querySelector('.sidebar');
+            const chatMain = document.querySelector('.chat-main');
+
+            if (showChat) {
+                sidebar.classList.add('mobile-hidden');
+                chatMain.classList.add('mobile-active');
+            } else {
+                sidebar.classList.remove('mobile-hidden');
+                chatMain.classList.remove('mobile-active');
+            }
+        }
+
         // Start a chat with a friend and load messages
         async function startChat(friendUsername, friendId, friendName) {
             currentFriend = { id: friendId, username: friendUsername, name: friendName };
@@ -755,6 +854,25 @@
             messagesList.innerHTML = '';
 
             await loadMessages(friendId);
+
+            // Show chat main on mobile
+            if (isMobileView()) {
+                toggleMobileView(true);
+            }
+        }
+
+        // Function for the back button on mobile
+        function backToFriends() {
+            if (isMobileView()) {
+                toggleMobileView(false);
+                currentFriend = null; // Deselect current friend
+                document.getElementById('chatFriendName').textContent = 'Select a friend to chat';
+                document.getElementById('chatFriendAvatar').textContent = 'F';
+                document.getElementById('messageInputSection').style.display = 'none';
+                document.querySelectorAll('.friend-item').forEach(item => {
+                    item.classList.remove('active-chat'); // Remove active highlight
+                });
+            }
         }
 
         // Load chat messages from the database
@@ -849,10 +967,21 @@
             if (storedUser) {
                 currentUser = JSON.parse(storedUser);
                 document.getElementById('authSection').style.display = 'none';
-                document.getElementById('chatSection').style.display = 'flex';
+                document.getElementById('chatSection').style.display = 'flex'; // Keep flex for desktop
+                
                 document.getElementById('currentUserName').textContent = currentUser.name;
                 document.getElementById('currentUserAvatar').textContent = currentUser.name.charAt(0).toUpperCase();
+                
                 loadFriends();
+
+                // On mobile, initially show only the sidebar (friends list)
+                if (isMobileView()) {
+                    toggleMobileView(false); // Ensure sidebar is visible and chat is hidden
+                } else {
+                    // For desktop, ensure chat-main is visible by default
+                    document.querySelector('.sidebar').classList.remove('mobile-hidden');
+                    document.querySelector('.chat-main').classList.remove('mobile-active');
+                }
             }
         };
 
