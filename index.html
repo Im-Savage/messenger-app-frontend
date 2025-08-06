@@ -359,6 +359,13 @@
             align-items: flex-start;
         }
 
+        /* Styling for images within messages */
+        .message-content img {
+            max-width: 100%; /* Ensure images don't overflow message bubble */
+            height: auto;
+            border-radius: 10px; /* Rounded corners for images */
+            margin-top: 5px; /* Space between text and image if both exist */
+        }
 
         .message-info {
             font-size: 0.8rem; /* Slightly larger font */
@@ -378,7 +385,7 @@
             background-color: rgba(255, 255, 255, 0.1); /* Consistent opacity */
         }
 
-        .chat-input input {
+        .chat-input input[type="text"] { /* Specificity for text input */
             flex-grow: 1;
             padding: 14px; /* More padding */
             border-radius: 12px; /* More rounded */
@@ -388,7 +395,7 @@
             font-size: 1.1rem; /* Slightly larger font */
         }
 
-        .chat-input input::placeholder {
+        .chat-input input[type="text"]::placeholder {
             color: rgba(255, 255, 255, 0.6); /* Brighter placeholder */
         }
 
@@ -550,6 +557,31 @@
         .mobile-back-button {
             display: none;
         }
+
+        /* Style for image upload button */
+        .image-upload-button {
+            background-color: #6200EE; /* A nice purple for image upload */
+            color: #fff;
+            border: none;
+            padding: 14px 22px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            font-size: 1.1rem;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .image-upload-button:hover {
+            background-color: #3700B3;
+            transform: translateY(-2px);
+        }
+
+        .image-upload-button input[type="file"] {
+            display: none; /* Hide the default file input */
+        }
     </style>
     <!-- Use your public Railway URL for the Socket.io connection -->
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
@@ -621,6 +653,10 @@
                 </div>
                 
                 <div class="chat-input" id="messageInputSection" style="display:none;">
+                    <label for="imageUpload" class="image-upload-button">
+                        &#x1F4F7; <!-- Camera emoji or similar icon -->
+                        <input type="file" id="imageUpload" accept="image/*">
+                    </label>
                     <input type="text" id="messageInput" placeholder="Type a message...">
                     <button onclick="sendMessage()">Send</button>
                 </div>
@@ -909,12 +945,43 @@
         function sendMessage() {
             const messageInput = document.getElementById('messageInput');
             const message = messageInput.value.trim();
-            if (message && currentUser && currentFriend) {
-                // Emit the message to the server with the receiverId
+            const imageFile = document.getElementById('imageUpload').files[0]; // Get the selected file
+
+            if (!currentUser || !currentFriend) {
+                showNotification('Please log in and select a friend to send a message.');
+                return;
+            }
+
+            if (message === '' && !imageFile) {
+                showNotification('Please type a message or select an image to send.');
+                return;
+            }
+
+            if (imageFile) {
+                // Read the image file as a Base64 string
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const imageData = event.target.result; // Base64 string
+                    socket.emit('chat message', {
+                        senderId: currentUser.id,
+                        receiverId: currentFriend.id,
+                        messageType: 'image',
+                        imageData: imageData
+                    });
+                    document.getElementById('imageUpload').value = ''; // Clear the file input
+                };
+                reader.onerror = function(error) {
+                    console.error('Error reading file:', error);
+                    showNotification('Failed to read image file.');
+                };
+                reader.readAsDataURL(imageFile); // Convert to Base64
+            } else {
+                // Send text message
                 socket.emit('chat message', {
                     senderId: currentUser.id,
                     receiverId: currentFriend.id,
                     content: message,
+                    messageType: 'text' // Explicitly set type for text messages
                 });
                 messageInput.value = '';
             }
@@ -928,14 +995,22 @@
             const isSelf = msg.sender_id === currentUser.id;
             
             messageEl.className = `message-box ${isSelf ? 'self' : 'other'}`;
-            messageEl.innerHTML = `
-                <div class="message-content ${isSelf ? 'self' : 'other'}">
-                    ${msg.content}
-                </div>
-            `;
             
-            // Append the new message to the bottom of the list
-            messagesList.appendChild(messageEl); // Changed from prepend to append
+            if (msg.message_type === 'image' && msg.image_data) {
+                // Create an image element
+                const img = document.createElement('img');
+                img.src = msg.image_data;
+                img.alt = 'Sent Image';
+                messageEl.appendChild(img);
+            } else {
+                // Display text content
+                const contentDiv = document.createElement('div');
+                contentDiv.className = `message-content ${isSelf ? 'self' : 'other'}`;
+                contentDiv.textContent = msg.content;
+                messageEl.appendChild(contentDiv);
+            }
+            
+            messagesList.appendChild(messageEl); // Append to the bottom
             messagesList.scrollTop = messagesList.scrollHeight; // Auto-scroll to bottom after new message
         }
 
