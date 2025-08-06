@@ -655,7 +655,7 @@
                 <div class="chat-input" id="messageInputSection" style="display:none;">
                     <label for="imageUpload" class="image-upload-button">
                         &#x1F4F7; <!-- Camera emoji or similar icon -->
-                        <input type="file" id="imageUpload" accept="image/*">
+                        <input type="file" id="imageUpload" accept="image/*" onchange="handleImageUpload()">
                     </label>
                     <input type="text" id="messageInput" placeholder="Type a message...">
                     <button onclick="sendMessage()">Send</button>
@@ -941,50 +941,67 @@
             }
         }
 
-        // Send a message via Socket.io
+        // New function to handle image upload
+        function handleImageUpload() {
+            const imageFile = document.getElementById('imageUpload').files[0];
+            const messageInput = document.getElementById('messageInput');
+
+            if (!currentUser || !currentFriend) {
+                showNotification('Please log in and select a friend to send an image.');
+                document.getElementById('imageUpload').value = ''; // Clear the file input
+                return;
+            }
+
+            if (!imageFile) {
+                showNotification('No image selected.');
+                return;
+            }
+
+            // Clear any text in the message input when an image is selected
+            messageInput.value = '';
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const imageData = event.target.result; // Base64 string
+                socket.emit('chat message', {
+                    senderId: currentUser.id,
+                    receiverId: currentFriend.id,
+                    messageType: 'image',
+                    imageData: imageData
+                });
+                document.getElementById('imageUpload').value = ''; // Clear the file input after sending
+            };
+            reader.onerror = function(error) {
+                console.error('Error reading file:', error);
+                showNotification('Failed to read image file.');
+                document.getElementById('imageUpload').value = ''; // Clear the file input
+            };
+            reader.readAsDataURL(imageFile); // Convert to Base64
+        }
+
+        // Send a message via Socket.io (now only for text)
         function sendMessage() {
             const messageInput = document.getElementById('messageInput');
             const message = messageInput.value.trim();
-            const imageFile = document.getElementById('imageUpload').files[0]; // Get the selected file
-
+            
             if (!currentUser || !currentFriend) {
                 showNotification('Please log in and select a friend to send a message.');
                 return;
             }
 
-            if (message === '' && !imageFile) {
-                showNotification('Please type a message or select an image to send.');
+            if (message === '') { // Only send if there's text
+                showNotification('Please type a message to send.');
                 return;
             }
 
-            if (imageFile) {
-                // Read the image file as a Base64 string
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    const imageData = event.target.result; // Base64 string
-                    socket.emit('chat message', {
-                        senderId: currentUser.id,
-                        receiverId: currentFriend.id,
-                        messageType: 'image',
-                        imageData: imageData
-                    });
-                    document.getElementById('imageUpload').value = ''; // Clear the file input
-                };
-                reader.onerror = function(error) {
-                    console.error('Error reading file:', error);
-                    showNotification('Failed to read image file.');
-                };
-                reader.readAsDataURL(imageFile); // Convert to Base64
-            } else {
-                // Send text message
-                socket.emit('chat message', {
-                    senderId: currentUser.id,
-                    receiverId: currentFriend.id,
-                    content: message,
-                    messageType: 'text' // Explicitly set type for text messages
-                });
-                messageInput.value = '';
-            }
+            // Send text message
+            socket.emit('chat message', {
+                senderId: currentUser.id,
+                receiverId: currentFriend.id,
+                content: message,
+                messageType: 'text' // Explicitly set type for text messages
+            });
+            messageInput.value = '';
         }
 
         function displayMessage(msg) {
@@ -1001,7 +1018,16 @@
                 const img = document.createElement('img');
                 img.src = msg.image_data;
                 img.alt = 'Sent Image';
-                messageEl.appendChild(img);
+                // Apply styling directly or via class for consistency
+                img.style.maxWidth = '100%';
+                img.style.height = 'auto';
+                img.style.borderRadius = '10px';
+                img.style.marginTop = '5px';
+
+                const contentDiv = document.createElement('div');
+                contentDiv.className = `message-content ${isSelf ? 'self' : 'other'}`;
+                contentDiv.appendChild(img); // Append image to content div
+                messageEl.appendChild(contentDiv);
             } else {
                 // Display text content
                 const contentDiv = document.createElement('div');
@@ -1061,7 +1087,7 @@
             }
         };
 
-        // Enter key handlers
+        // Enter key handlers - now only for text input
         document.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 if (document.getElementById('authSection').style.display !== 'none') {
@@ -1070,7 +1096,7 @@
                     } else {
                         register();
                     }
-                } else if (document.getElementById('chatSection').style.display !== 'none') {
+                } else if (document.getElementById('chatSection').style.display !== 'none' && document.activeElement === document.getElementById('messageInput')) {
                     sendMessage();
                 }
             }
