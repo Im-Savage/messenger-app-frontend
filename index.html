@@ -4,10 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gigga's Whats App</title>
+    <!-- Use the Firebase compatibility SDK for ease of use -->
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore-compat.js"></script>
     <style>
+        /* Base styles for a dark, modern interface */
         * {
             margin: 0;
             padding: 0;
@@ -26,6 +28,7 @@
             overflow-x: hidden;
         }
 
+        /* Adds a subtle radial gradient effect to the background */
         body::before {
             content: '';
             position: fixed;
@@ -53,7 +56,7 @@
             color: #fff;
         }
 
-        /* --- Auth Section --- */
+        /* --- Authentication Section Styles --- */
         #authSection {
             display: flex;
             flex-direction: column;
@@ -137,7 +140,7 @@
             text-decoration: underline;
         }
 
-        /* --- Chat Section --- */
+        /* --- Chat Section Styles --- */
         #chatSection {
             display: none;
             flex-grow: 1;
@@ -231,6 +234,7 @@
             padding: 0 20px;
         }
 
+        /* Custom scrollbar for better visuals */
         .friends-list::-webkit-scrollbar, .friend-requests-list::-webkit-scrollbar {
             width: 8px;
         }
@@ -341,6 +345,7 @@
             flex-direction: column;
         }
 
+        /* Custom scrollbar for chat messages */
         .chat-messages::-webkit-scrollbar {
             width: 8px;
         }
@@ -481,73 +486,9 @@
             transform: translateY(0);
         }
         
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            .app-container {
-                flex-direction: column;
-                height: 100vh;
-                width: 100%;
-                border-radius: 0;
-                box-shadow: none;
-            }
-
-            .sidebar {
-                width: 100%;
-                height: 100vh;
-                border-right: none;
-                border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-                position: absolute;
-                top: 0;
-                left: 0;
-                z-index: 10;
-                transition: transform 0.3s ease-in-out;
-                transform: translateX(0);
-            }
-
-            .sidebar.mobile-hidden {
-                transform: translateX(-100%);
-            }
-
-            .chat-main {
-                width: 100%;
-                height: 100vh;
-                position: absolute;
-                top: 0;
-                left: 0;
-                z-index: 9;
-                transition: transform 0.3s ease-in-out;
-                transform: translateX(100%);
-            }
-
-            .chat-main.mobile-active {
-                transform: translateX(0);
-                z-index: 11;
-            }
-
-            .friends-list, .friend-requests-list {
-                flex-grow: 1;
-                max-height: none;
-            }
-
-            .sidebar-header {
-                padding: 15px;
-            }
-        
-            .toggle-chat-button {
-                display: block;
-                background-color: rgba(255, 255, 255, 0.2);
-                border: none;
-                color: white;
-                font-size: 1.5rem;
-                padding: 8px 12px;
-                border-radius: 50%;
-                cursor: pointer;
-            }
-        }
-        
         /* Mobile View toggle button - new addition */
         .toggle-chat-button {
-            display: none; /* Hide on desktop */
+            display: none; /* Hidden on desktop */
             background-color: #4CAF50;
             color: #fff;
             border: none;
@@ -558,7 +499,7 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
         .close-chat-button {
-            display: none; /* Hide on desktop */
+            display: none; /* Hidden on desktop */
             background-color: #D32F2F;
             color: #fff;
             border: none;
@@ -571,7 +512,7 @@
 
         /* Modal styling */
         .modal {
-            display: none;
+            display: none; /* Hidden by default */
             position: fixed;
             z-index: 1001;
             left: 0;
@@ -639,7 +580,73 @@
         .modal-content .cancel-button:hover {
             background-color: #E57373;
         }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .app-container {
+                flex-direction: column;
+                height: 100vh;
+                width: 100%;
+                border-radius: 0;
+                box-shadow: none;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: 100vh;
+                border-right: none;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+                position: absolute;
+                top: 0;
+                left: 0;
+                z-index: 10;
+                transition: transform 0.3s ease-in-out;
+                transform: translateX(0);
+            }
+
+            .sidebar.mobile-hidden {
+                transform: translateX(-100%);
+            }
+
+            .chat-main {
+                width: 100%;
+                height: 100vh;
+                position: absolute;
+                top: 0;
+                left: 0;
+                z-index: 9;
+                transition: transform 0.3s ease-in-out;
+                transform: translateX(100%);
+            }
+
+            .chat-main.mobile-active {
+                transform: translateX(0);
+                z-index: 11;
+            }
+
+            .friends-list, .friend-requests-list {
+                flex-grow: 1;
+                max-height: none;
+            }
+            .sidebar-header {
+                padding: 15px;
+            }
+        }
         
+        .toggle-chat-button, .close-chat-button {
+            display: none; /* Hide on desktop */
+            background-color: #4CAF50;
+            color: #fff;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .close-chat-button {
+            background-color: #D32F2F;
+        }
     </style>
 </head>
 <body>
@@ -802,8 +809,7 @@
             }, 3000);
         }
 
-        // Custom Modal UI
-        let resolveModalPromise;
+        // Custom Modal UI (replaces alert/confirm)
         function showModal(title, message, isConfirm = false) {
             return new Promise((resolve) => {
                 const modal = document.getElementById('customModal');
@@ -832,8 +838,6 @@
                     };
                     modalButtons.appendChild(cancelButton);
                 }
-
-                resolveModalPromise = resolve;
                 modal.style.display = 'flex';
             });
         }
@@ -854,6 +858,10 @@
             const name = document.getElementById('registerName').value;
             const email = document.getElementById('registerEmail').value;
             const password = document.getElementById('registerPassword').value;
+            if (!name || !email || !password) {
+                 showModal("Registration Failed", "Please fill in all fields.");
+                 return;
+            }
             try {
                 const userCredential = await auth.createUserWithEmailAndPassword(email, password);
                 const user = userCredential.user;
@@ -921,13 +929,17 @@
                     return;
                 }
 
+                // Check for an existing pending request
                 const requestsRef = db.collection("artifacts").doc(appId).collection("public/data/friendRequests");
-                const friendRequestQuery = requestsRef
+                const friendRequestQuery = await requestsRef
                     .where("from", "==", currentUser.uid)
-                    .where("to", "==", friendId);
+                    .where("to", "==", friendId).get();
+                
+                const friendRequestQuery2 = await requestsRef
+                    .where("to", "==", currentUser.uid)
+                    .where("from", "==", friendId).get();
 
-                const existingRequest = await friendRequestQuery.get();
-                if (existingRequest.empty) {
+                if (friendRequestQuery.empty && friendRequestQuery2.empty) {
                     await requestsRef.add({
                         from: currentUser.uid,
                         to: friendId,
@@ -937,7 +949,7 @@
                     });
                     showNotification(`Friend request sent to ${userDoc.data().name}.`);
                 } else {
-                    showModal("Request Exists", "Friend request already sent to this user.");
+                    showModal("Request Exists", "Friend request already sent to or received from this user.");
                 }
 
             } else {
@@ -1028,29 +1040,39 @@
         }
         
         async function acceptFriendRequest(requestId, senderId, senderName) {
-            // Add sender to my friend list
-            const myFriendsRef = db.collection("artifacts").doc(appId).collection("users").doc(currentUser.uid);
-            await myFriendsRef.set({
-                friends: arrayUnion({ uid: senderId, name: senderName })
-            }, { merge: true });
+            try {
+                // Add sender to my friend list
+                const myFriendsRef = db.collection("artifacts").doc(appId).collection("users").doc(currentUser.uid);
+                await myFriendsRef.update({
+                    friends: arrayUnion({ uid: senderId, name: senderName })
+                });
 
-            // Add me to the sender's friend list
-            const senderFriendsRef = db.collection("artifacts").doc(appId).collection("users").doc(senderId);
-            await senderFriendsRef.set({
-                friends: arrayUnion({ uid: currentUser.uid, name: currentUser.name })
-            }, { merge: true });
+                // Add me to the sender's friend list
+                const senderFriendsRef = db.collection("artifacts").doc(appId).collection("users").doc(senderId);
+                await senderFriendsRef.update({
+                    friends: arrayUnion({ uid: currentUser.uid, name: currentUser.name })
+                });
 
-            // Delete the friend request
-            const requestDocRef = db.collection("artifacts").doc(appId).collection("public/data/friendRequests").doc(requestId);
-            await requestDocRef.delete();
+                // Delete the friend request
+                const requestDocRef = db.collection("artifacts").doc(appId).collection("public/data/friendRequests").doc(requestId);
+                await requestDocRef.delete();
 
-            showNotification(`You are now friends with ${senderName}!`);
+                showNotification(`You are now friends with ${senderName}!`);
+            } catch (error) {
+                console.error("Error accepting friend request: ", error);
+                showModal("Error", "Failed to accept friend request. Please try again.");
+            }
         }
 
         async function declineFriendRequest(requestId) {
-            const requestDocRef = db.collection("artifacts").doc(appId).collection("public/data/friendRequests").doc(requestId);
-            await requestDocRef.delete();
-            showNotification("Friend request declined.");
+            try {
+                const requestDocRef = db.collection("artifacts").doc(appId).collection("public/data/friendRequests").doc(requestId);
+                await requestDocRef.delete();
+                showNotification("Friend request declined.");
+            } catch (error) {
+                console.error("Error declining friend request: ", error);
+                showModal("Error", "Failed to decline friend request. Please try again.");
+            }
         }
 
         function getChatId(user1Id, user2Id) {
@@ -1097,7 +1119,7 @@
                 });
                 
                 // Sort messages by timestamp, as Firestore orderBy is not used to prevent indexing errors
-                messages.sort((a, b) => a.timestamp.seconds - b.timestamp.seconds);
+                messages.sort((a, b) => (a.timestamp ? a.timestamp.seconds : 0) - (b.timestamp ? b.timestamp.seconds : 0));
 
                 messages.forEach((message) => {
                     displayMessage(message);
@@ -1121,14 +1143,12 @@
             const messageContent = document.createElement('div');
             messageContent.classList.add('message-content');
             
-            // Check if there's text content
             if (message.text) {
                 const textSpan = document.createElement('span');
                 textSpan.textContent = message.text;
                 messageContent.appendChild(textSpan);
             }
 
-            // Check if there's an image
             if (message.imageUrl) {
                 const img = document.createElement('img');
                 img.src = message.imageUrl;
@@ -1206,7 +1226,7 @@
             }
         }
         
-        // --- Initialization ---
+        // --- Initialization and Event Listeners ---
         document.addEventListener('DOMContentLoaded', async function() {
             try {
                 // Initialize Firebase with the provided config
@@ -1251,11 +1271,6 @@
                         document.getElementById('authSection').style.display = 'flex';
                     }
                 });
-
-                // Mobile view toggle button logic
-                if (isMobileView()) {
-                    // This logic is now handled in the auth state change listener and openChat function
-                }
 
                 // Handle 'Enter' key for sending messages
                 document.getElementById('messageInput').addEventListener('keypress', function(e) {
