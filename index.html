@@ -70,10 +70,13 @@
             max-width: 400px;
             text-align: center;
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
         }
-
+        
         .auth-card h2 {
-            margin-bottom: 20px;
+            margin-bottom: 5px;
             font-size: 2.2rem;
             color: #4CAF50;
             font-weight: 700;
@@ -82,7 +85,6 @@
         .auth-card input {
             width: 100%;
             padding: 14px;
-            margin-bottom: 18px;
             border: 1px solid rgba(255, 255, 255, 0.3);
             background-color: rgba(0, 0, 0, 0.4);
             border-radius: 10px;
@@ -121,7 +123,7 @@
         }
 
         .auth-card .toggle-link {
-            margin-top: 20px;
+            margin-top: 5px;
             color: #C0C0C0;
             cursor: pointer;
             font-size: 1rem;
@@ -681,6 +683,7 @@
         let socket;
 
         // --- State Management ---
+        // A single object to hold all the application's state.
         const state = {
             currentUser: null,
             friends: [],
@@ -715,7 +718,10 @@
 
         // --- Utility Functions ---
 
-        // Display a transient notification message
+        /**
+         * Displays a transient notification message to the user.
+         * @param {string} message The message to display.
+         */
         function showNotification(message) {
             notificationBoxElem.textContent = message;
             notificationBoxElem.classList.add('show');
@@ -724,29 +730,38 @@
             }, 3000);
         }
 
-        // Toggles between the sidebar and chat window on mobile
+        /**
+         * Toggles between the sidebar and chat window on mobile.
+         * @param {boolean} showChat If true, shows the chat window; otherwise, shows the sidebar.
+         */
         function toggleMobileView(showChat) {
-            if (showChat) {
-                sidebarElem.classList.add('mobile-hidden');
-                chatMainElem.classList.add('mobile-active');
-            } else {
-                sidebarElem.classList.remove('mobile-hidden');
-                chatMainElem.classList.remove('mobile-active');
+            if (state.isMobileView()) {
+                if (showChat) {
+                    sidebarElem.classList.add('mobile-hidden');
+                    chatMainElem.classList.add('mobile-active');
+                } else {
+                    sidebarElem.classList.remove('mobile-hidden');
+                    chatMainElem.classList.remove('mobile-active');
+                }
             }
         }
 
-        // Scrolls the chat window to the bottom
+        /**
+         * Scrolls the chat messages container to the bottom.
+         */
         function scrollToBottom() {
             chatMessagesElem.scrollTop = chatMessagesElem.scrollHeight;
         }
 
         // --- Rendering Functions ---
 
-        // Renders the friends and requests list dynamically
+        /**
+         * Renders the friends and friend requests list dynamically based on the state.
+         */
         function renderFriendsAndRequests() {
             let html = '';
 
-            // Render Friend Requests
+            // Render Friend Requests section
             html += `
                 <div class="friend-requests-list">
                     <h3>Friend Requests</h3>
@@ -768,7 +783,7 @@
                 </div>
             `;
 
-            // Render Friends List
+            // Render Friends List section
             html += `
                 <div class="friends-list">
                     <h3>Friends</h3>
@@ -815,12 +830,14 @@
             });
         }
 
-        // Renders the main chat window
+        /**
+         * Renders the main chat window with messages for the selected friend.
+         */
         async function renderChatWindow() {
             if (!state.selectedFriend) {
                 chatFriendNameElem.textContent = '';
                 chatFriendAvatarElem.textContent = 'F';
-                chatMessagesElem.innerHTML = `<div style="text-align: center; color: #94a3b8; margin-top: 20px;"><p id="noChatSelectedMessage">Select a friend to start chatting</p></div>`;
+                noChatSelectedMessage.style.display = 'block';
                 return;
             }
 
@@ -849,7 +866,10 @@
             renderFriendsAndRequests(); // Re-render to show active chat
         }
 
-        // Toggles between login and register forms
+        /**
+         * Toggles between the login and register forms on the authentication page.
+         * @param {boolean} showLogin If true, shows the login form; otherwise, shows the register form.
+         */
         function toggleAuthView(showLogin) {
             loginForm.style.display = showLogin ? 'flex' : 'none';
             registerForm.style.display = showLogin ? 'none' : 'flex';
@@ -857,6 +877,12 @@
 
         // --- API & Socket Functions ---
 
+        /**
+         * Sends a POST request to the server API.
+         * @param {string} endpoint The API endpoint to call.
+         * @param {object} body The request body.
+         * @returns {Promise<object>} The response data.
+         */
         async function makeApiRequest(endpoint, body) {
             const response = await fetch(`${SOCKET_SERVER_URL}/${endpoint}`, {
                 method: 'POST',
@@ -866,7 +892,9 @@
             return await response.json();
         }
 
-        // Handles user login
+        /**
+         * Handles user login.
+         */
         async function login() {
             const username = loginUsernameInput.value;
             const password = loginPasswordInput.value;
@@ -889,7 +917,9 @@
             }
         }
 
-        // Handles user registration
+        /**
+         * Handles user registration.
+         */
         async function register() {
             const name = registerNameInput.value;
             const username = registerUsernameInput.value;
@@ -912,21 +942,28 @@
             }
         }
 
-        // Logs the user out
+        /**
+         * Logs the user out and resets the application state.
+         */
         function logout() {
             state.currentUser = null;
             state.friends = [];
             state.friendRequests = [];
             state.selectedFriend = null;
             state.messages = [];
-            socket.disconnect();
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+            }
             authSection.style.display = 'flex';
             chatSection.style.display = 'none';
             toggleAuthView(true);
             showNotification('You have been logged out.');
         }
 
-        // Fetches all friends and requests for the current user
+        /**
+         * Fetches all friends and requests for the current user and renders the list.
+         */
         async function loadFriendsAndRequests() {
             if (!state.currentUser) return;
             try {
@@ -954,7 +991,9 @@
             }
         }
 
-        // Sends a friend request
+        /**
+         * Sends a friend request to a specified username.
+         */
         async function sendFriendRequest() {
             const friendUsername = document.getElementById('friendUsername').value;
             if (!friendUsername) {
@@ -974,7 +1013,10 @@
             }
         }
 
-        // Accepts a friend request
+        /**
+         * Accepts a friend request.
+         * @param {string} requestId The ID of the request to accept.
+         */
         async function acceptFriendRequest(requestId) {
             try {
                 const data = await makeApiRequest('accept-friend-request', {
@@ -989,7 +1031,10 @@
             }
         }
 
-        // Declines a friend request
+        /**
+         * Declines a friend request.
+         * @param {string} requestId The ID of the request to decline.
+         */
         async function declineFriendRequest(requestId) {
             try {
                 const data = await makeApiRequest('decline-friend-request', {
@@ -1004,7 +1049,9 @@
             }
         }
 
-        // Fetches messages for the selected friend
+        /**
+         * Fetches all messages for the selected friend.
+         */
         async function fetchMessages() {
             if (!state.selectedFriend) return;
             try {
@@ -1021,7 +1068,9 @@
             }
         }
 
-        // Sends a message to the currently selected friend
+        /**
+         * Sends a message to the currently selected friend.
+         */
         function sendMessage() {
             const content = messageInputElem.value.trim();
             if (content === '' || !state.selectedFriend) return;
@@ -1033,7 +1082,9 @@
             };
 
             // Emit the message to the server via WebSocket
-            socket.emit('chat message', message);
+            if (socket) {
+                socket.emit('chat message', message);
+            }
 
             // Add the new message to our local state and re-render
             state.messages.push({
@@ -1049,6 +1100,9 @@
 
         // --- Initialization and Event Listeners ---
 
+        /**
+         * Initializes the Socket.io connection and event listeners.
+         */
         function initializeSocket() {
             if (socket) return;
             socket = io(SOCKET_SERVER_URL, {
@@ -1057,7 +1111,6 @@
 
             // Handle incoming chat messages
             socket.on('chat message', (msg) => {
-                // Only process messages for the currently selected friend
                 if (state.selectedFriend && (msg.sender_id === state.selectedFriend.id || msg.receiver_id === state.selectedFriend.id)) {
                     state.messages.push(msg);
                     renderChatWindow();
@@ -1075,7 +1128,6 @@
             socket.on('friend request status', async (data) => {
                 showNotification(data.message);
                 await loadFriendsAndRequests();
-                // If a new friend is accepted, update the friend list and show the chat window
                 if (data.isAccepted) {
                     const newFriend = state.friends.find(f => f.id === data.friendId);
                     if (newFriend) {
@@ -1088,6 +1140,9 @@
             });
         }
 
+        /**
+         * Initializes the chat application after a successful login.
+         */
         function initializeChatApp() {
             authSection.style.display = 'none';
             chatSection.style.display = 'flex';
@@ -1097,21 +1152,17 @@
             loadFriendsAndRequests();
             initializeSocket();
 
-            // Mobile-specific view initialization
             if (state.isMobileView()) {
-                toggleMobileView(false); // Initially show the sidebar
+                toggleMobileView(false);
             }
         }
 
-        // Main event listeners
+        // Main event listeners attached after the DOM is fully loaded.
         document.addEventListener('DOMContentLoaded', () => {
-            // Auth form submission handlers
             document.getElementById('loginButton').addEventListener('click', login);
             document.getElementById('registerButton').addEventListener('click', register);
             document.getElementById('showRegisterLink').addEventListener('click', () => toggleAuthView(false));
             document.getElementById('showLoginLink').addEventListener('click', () => toggleAuthView(true));
-
-            // Chat section handlers
             document.getElementById('logoutButton').addEventListener('click', logout);
             document.getElementById('sendFriendRequestButton').addEventListener('click', sendFriendRequest);
             document.getElementById('sendMessageButton').addEventListener('click', sendMessage);
@@ -1122,19 +1173,16 @@
             });
             backButtonElem.addEventListener('click', () => {
                 if (state.isMobileView()) {
-                    toggleMobileView(false); // Go back to the friends list
+                    toggleMobileView(false);
                 }
             });
 
-            // Re-render based on window resize to handle mobile view
             window.addEventListener('resize', () => {
                 if (state.isMobileView()) {
-                    // Force the view to the friends list if on mobile and no chat is selected
                     if (!state.selectedFriend) {
                        toggleMobileView(false);
                     }
                 } else {
-                    // On desktop, ensure both are visible
                     sidebarElem.classList.remove('mobile-hidden');
                     chatMainElem.classList.remove('mobile-active');
                 }
