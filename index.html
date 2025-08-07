@@ -762,30 +762,24 @@
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
-        // Initialize Firebase
-        if (Object.keys(firebaseConfig).length > 0) {
-            firebase.initializeApp(firebaseConfig);
-        } else {
-            console.error("Firebase config not found. App may not function correctly.");
-        }
-        
-        const db = firebase.firestore();
-        const auth = firebase.auth();
+        // Global variables for Firebase services, to be initialized after the DOM is ready.
+        let db = null;
+        let auth = null;
+        let currentUser = null;
+        let activeChatFriend = null;
+
+        // Firestore FieldValue shortcuts
         const serverTimestamp = firebase.firestore.FieldValue.serverTimestamp;
         const arrayUnion = firebase.firestore.FieldValue.arrayUnion;
         const arrayRemove = firebase.firestore.FieldValue.arrayRemove;
         
-        let currentUser = null;
-        let activeChatFriend = null;
+        // Unsubscribe functions for real-time listeners
         let unsubscribeMessages = null;
         let unsubscribeFriends = null;
         let unsubscribeRequests = null;
+        
+        // Flag to track if auth state is ready
         let isAuthReady = false;
-
-        // Utility function to check for mobile view
-        function isMobileView() {
-            return window.innerWidth <= 768;
-        }
 
         // --- UI Functions ---
         function toggleAuthForm() {
@@ -846,6 +840,10 @@
         async function login() {
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPassword').value;
+            if (!email || !password) {
+                showModal("Login Failed", "Please enter both email and password.");
+                return;
+            }
             try {
                 await auth.signInWithEmailAndPassword(email, password);
                 showNotification("Logged in successfully!");
@@ -880,22 +878,6 @@
             try {
                 await auth.signOut();
                 showNotification("Logged out successfully!");
-                // Clear state
-                currentUser = null;
-                activeChatFriend = null;
-                // Unsubscribe from all listeners
-                if (unsubscribeMessages) unsubscribeMessages();
-                if (unsubscribeFriends) unsubscribeFriends();
-                if (unsubscribeRequests) unsubscribeRequests();
-                // Switch back to auth view
-                document.getElementById('chatSection').style.display = 'none';
-                document.getElementById('authSection').style.display = 'flex';
-                // Reset forms
-                document.getElementById('loginEmail').value = '';
-                document.getElementById('loginPassword').value = '';
-                document.getElementById('registerName').value = '';
-                document.getElementById('registerEmail').value = '';
-                document.getElementById('registerPassword').value = '';
             } catch (error) {
                 showModal("Logout Failed", "Error logging out: " + error.message);
             }
@@ -1225,14 +1207,42 @@
                 chatMain.classList.remove('mobile-active');
             }
         }
+
+        // Utility function to check for mobile view
+        function isMobileView() {
+            return window.innerWidth <= 768;
+        }
         
+        // This function resets the app state and UI to the login screen.
+        function resetAppState() {
+            currentUser = null;
+            activeChatFriend = null;
+
+            // Unsubscribe from all listeners
+            if (unsubscribeMessages) unsubscribeMessages();
+            if (unsubscribeFriends) unsubscribeFriends();
+            if (unsubscribeRequests) unsubscribeRequests();
+
+            // Clear UI elements
+            document.getElementById('friendsList').innerHTML = '';
+            document.getElementById('friendRequestsList').innerHTML = '';
+            document.getElementById('chatMessages').innerHTML = '';
+            document.getElementById('messageInput').value = '';
+            document.getElementById('emptyChatPlaceholder').style.display = 'flex';
+            document.getElementById('chatWindow').style.display = 'none';
+
+            // Switch to auth view
+            document.getElementById('chatSection').style.display = 'none';
+            document.getElementById('authSection').style.display = 'flex';
+        }
+
         // --- Initialization and Event Listeners ---
         document.addEventListener('DOMContentLoaded', async function() {
             try {
                 // Initialize Firebase with the provided config
                 const firebaseApp = firebase.initializeApp(firebaseConfig);
-                const db = firebaseApp.firestore();
-                const auth = firebaseApp.auth();
+                db = firebaseApp.firestore();
+                auth = firebaseApp.auth();
 
                 // If a token exists, sign in with it, otherwise sign in anonymously
                 if (initialAuthToken) {
@@ -1264,11 +1274,13 @@
                                 document.querySelector('.sidebar').classList.remove('mobile-hidden');
                                 document.querySelector('.chat-main').classList.remove('mobile-active');
                             }
+                        } else {
+                           // User document does not exist, likely an anonymous user. Reset.
+                           resetAppState();
                         }
                     } else {
-                        // Not logged in
-                        document.getElementById('chatSection').style.display = 'none';
-                        document.getElementById('authSection').style.display = 'flex';
+                        // Not logged in or logged out. Reset app state.
+                        resetAppState();
                     }
                 });
 
